@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ndaro Sector - Monthly Marks</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; }
+        
+        .setup-section { 
+            display: flex; flex-wrap: wrap; gap: 10px; 
+            background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+        }
+        .form-group { flex: 1; min-width: 140px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+        select, input[type="text"] { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 15px; box-sizing: border-box; }
+
+        .btn-generate { 
+            background: #1a73e8; color: white; border: none; padding: 10px 20px; 
+            border-radius: 5px; cursor: pointer; font-weight: bold; align-self: flex-end; height: 40px;
+        }
+
+        .table-container { overflow-x: auto; margin-top: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { background: #34495e; color: white; padding: 12px 5px; font-size: 12px; position: sticky; top: 0; z-index: 10; }
+        td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        
+        /* Input styling */
+        .std-name { width: 180px !important; text-align: left !important; }
+        input[type="number"] { width: 55px; padding: 8px 2px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 14px; }
+        
+        /* Result styling */
+        .row-total { font-weight: bold; color: #2c3e50; background: #f8f9fa; }
+        .row-avg { font-weight: bold; color: #27ae60; background: #f8f9fa; }
+        
+        .action-bar { margin-top: 25px; display: flex; gap: 10px; }
+        .btn-confirm { flex: 2; background: #27ae60; color: white; border: none; padding: 18px; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-clear { flex: 1; background: #e74c3c; color: white; border: none; padding: 18px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f1f1f1; }
+        input:focus { border-color: #1a73e8; outline: none; background: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ndaro Sector - Marks Management</h2>
+    
+    <div class="setup-section">
+        <div class="form-group">
+            <label>School:</label>
+            <select id="schoolName">
+                <option value="GS_KIBANDA">GS KIBANDA</option>
+                <option value="GS_GASAVE">GS GASAVE</option>
+                <option value="EP_KAMINA">EP KAMINA</option>
+                <option value="EP_BIRIMA">EP BIRIMA</option>
+                <option value="EP_GISEKE">EP GISEKE</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Class:</label>
+            <select id="className">
+                <option value="P1">Primary 1</option>
+                <option value="P2">Primary 2</option>
+                <option value="P3">Primary 3</option>
+                <option value="P4">Primary 4</option>
+                <option value="P5">Primary 5</option>
+                <option value="P6">Primary 6</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Month:</label>
+            <select id="monthName">
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+            </select>
+        </div>
+        <button onclick="generateSheet()" class="btn-generate">Start Filling Marks</button>
+    </div>
+
+    <div id="entrySection" style="display:none;">
+        <h3 id="sheetTitle" style="color: #1a73e8; border-bottom: 2px solid #34495e; padding-bottom: 10px;"></h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Student Name</th>
+                        <th>Gen</th>
+                        <th>MATH</th>
+                        <th>SET</th>
+                        <th>ENG</th>
+                        <th>KIN</th>
+                        <th>SRE</th>
+                        <th>Total</th>
+                        <th>Avg %</th>
+                    </tr>
+                </thead>
+                <tbody id="studentRows"></tbody>
+            </table>
+        </div>
+        
+        <div class="action-bar">
+            <button onclick="confirmFinalMarks()" class="btn-confirm">CONFIRM & SAVE ALL MARKS</button>
+            <button onclick="clearClassData()" class="btn-clear">RESET SHEET</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generateSheet() {
+        const school = document.getElementById('schoolName').value;
+        const className = document.getElementById('className').value;
+        const month = document.getElementById('monthName').value;
+        const storageKey = `Marks_${school}_${className}_${month}`;
+        const tbody = document.getElementById('studentRows');
+        
+        document.getElementById('sheetTitle').innerText = `${school.replace('_', ' ')} | ${className} | ${month}`;
+        document.getElementById('entrySection').style.display = 'block';
+        
+        const savedData = JSON.parse(localStorage.getItem(storageKey)) || [];
+        tbody.innerHTML = ''; 
+
+        for (let i = 1; i <= 45; i++) {
+            const d = savedData[i-1] || { name: '', gen: 'M', m: '', s: '', e: '', k: '', sr: '' };
+            
+            let row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${i}</td>
+                <td><input type="text" class="std-name" value="${d.name}" oninput="autoSave()"></td>
+                <td>
+                    <select class="std-gen" onchange="autoSave()">
+                        <option value="M" ${d.gen === 'M' ? 'selected' : ''}>M</option>
+                        <option value="F" ${d.gen === 'F' ? 'selected' : ''}>F</option>
+                    </select>
+                </td>
+                <td><input type="number" class="m-math" value="${d.m}" oninput="calculateRow(this)"></td>
+                <td><input type="number" class="m-set" value="${d.s}" oninput="calculateRow(this)"></td>
+                <td><input type="number" class="m-eng" value="${d.e}" oninput="calculateRow(this)"></td>
+                <td><input type="number" class="m-kin" value="${d.k}" oninput="calculateRow(this)"></td>
+                <td><input type="number" class="m-sre" value="${d.sr}" oninput="calculateRow(this)"></td>
+                <td class="row-total">0</td>
+                <td class="row-avg">0%</td>
+            `;
+            tbody.appendChild(row);
+            // Initial calculation for saved values
+            calculateRow(row.querySelector('input[type="number"]'));
+        }
+    }
+
+    function calculateRow(inputElement) {
+        if(!inputElement) return;
+        const row = inputElement.closest('tr');
+        const m = parseFloat(row.querySelector('.m-math').value) || 0;
+        const s = parseFloat(row.querySelector('.m-set').value) || 0;
+        const e = parseFloat(row.querySelector('.m-eng').value) || 0;
+        const k = parseFloat(row.querySelector('.m-kin').value) || 0;
+        const sr = parseFloat(row.querySelector('.m-sre').value) || 0;
+
+        const total = m + s + e + k + sr;
+        const avg = (total / 5).toFixed(1);
+
+        row.querySelector('.row-total').innerText = total;
+        row.querySelector('.row-avg').innerText = avg + '%';
+        autoSave(); // Save data every time a mark is changed
+    }
+
+    function autoSave() {
+        const school = document.getElementById('schoolName').value;
+        const className = document.getElementById('className').value;
+        const month = document.getElementById('monthName').value;
+        const storageKey = `Marks_${school}_${className}_${month}`;
+        const rows = document.querySelectorAll('#studentRows tr');
+        const allData = [];
+
+        rows.forEach(row => {
+            allData.push({
+                name: row.querySelector('.std-name').value,
+                gen: row.querySelector('.std-gen').value,
+                m: row.querySelector('.m-math').value,
+                s: row.querySelector('.m-set').value,
+                e: row.querySelector('.m-eng').value,
+                k: row.querySelector('.m-kin').value,
+                sr: row.querySelector('.m-sre').value
+            });
+        });
+        localStorage.setItem(storageKey, JSON.stringify(allData));
+    }
+
+    function confirmFinalMarks() {
+        const school = document.getElementById('schoolName').value.replace('_', ' ');
+        const month = document.getElementById('monthName').value;
+        const className = document.getElementById('className').value;
+        
+        if(confirm(`Confirm marks for ${school} - ${className} for ${month}? This will save all records permanently to this device.`)) {
+            alert("Marks Confirmed Successfully!");
+        }
+    }
+
+    function clearClassData() {
+        if(confirm("Warning: This will delete ALL names and marks for this month. Continue?")) {
+            const school = document.getElementById('schoolName').value;
+            const className = document.getElementById('className').value;
+            const month = document.getElementById('monthName').value;
+            localStorage.removeItem(`Marks_${school}_${className}_${month}`);
+            generateSheet();
+        }
+    }
+</script>
+
+</body>
+</html>
